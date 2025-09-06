@@ -1,3 +1,4 @@
+import random
 import pygame
 
 from .mainwindow import MainWindow
@@ -51,6 +52,7 @@ class GameApp:
     def run(self):
         clock = pygame.time.Clock()
         was_game_over = False
+        font = pygame.font.SysFont('Sans', 20)
 
         while self._is_running:
             self._dt = clock.tick() / 1000
@@ -83,14 +85,13 @@ class GameApp:
                 self._screen.blit(sprite.image, screen_pos)
 
             self._ui.draw(self._screen)
-            pygame.draw.rect(
-                self._screen, '#ff0000', self._camera.apply(self._platforms.sprites()[0].rect), 1
-            )
 
             if self.is_paused:
                 for bar_rect in pygame.Rect(10, 10, 10, 30), pygame.Rect(30, 10, 10, 30):
                     self._screen.fill('#000000', bar_rect.inflate(2, 2))
                     self._screen.fill('#ffffff', bar_rect)
+
+            # self._screen.blit(font.render(f'FPS: {clock.get_fps()}', True, '#00ff00'), (10, 10))
 
             pygame.display.flip()
 

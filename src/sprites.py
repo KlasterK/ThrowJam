@@ -132,6 +132,7 @@ class Physical(pygame.sprite.Sprite):
 
     def check_horizontal_collisions(self, group) -> bool:
         """Проверяет коллизии по горизонтали"""
+
         hits = pygame.sprite.spritecollide(self, group, False)
         for sprite in hits:
             if self.velocity.x > 0:  # Движение вправо
