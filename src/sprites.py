@@ -288,6 +288,7 @@ class Player(Physical):
         # if self.is_grounded:
         self.acceleration.x = -self.move_speed
         self.image = pygame.transform.flip(get_image('player_running_toright.png'), True, False)
+        self.rect = self.image.get_frect(topleft=self.rect.topleft)
         self._facing = 'left'
 
     def move_right(self):
@@ -295,6 +296,7 @@ class Player(Physical):
         # if self.is_grounded:
         self.acceleration.x = self.move_speed
         self.image = get_image('player_running_toright.png')
+        self.rect = self.image.get_frect(topleft=self.rect.topleft)
         self._facing = 'right'
 
     def jump(self):
@@ -305,6 +307,7 @@ class Player(Physical):
         self.acceleration.x = 0
         self.velocity.x = 0
         self.image = get_image('player_idle.png')
+        self.rect = self.image.get_frect(topleft=self.rect.topleft)
 
 
 class Spear(MaskPhysical):

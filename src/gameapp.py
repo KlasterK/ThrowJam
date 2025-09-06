@@ -31,11 +31,11 @@ class GameApp:
         self.reload()
 
     def reload(self):
-        self._player = Player(100, 0)
+        self._player = Player(200, 100)
         self._spears = pygame.sprite.Group()
         self._platforms = pygame.sprite.Group(
             Platform(100, 100, 10, 0),
-            Platform(60, 60, 0, 0),
+            Platform(61, 40, 0, 3),
         )
 
         self._camera = Camera(400, 400, self._player)
