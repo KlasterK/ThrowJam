@@ -164,6 +164,115 @@ class Physical(pygame.sprite.Sprite):
                 self.rect.top = platform.rect.bottom
                 self.velocity.y = 0
 
+        return bool(hits)
+
+
+class MaskPhysical(Physical):
+    def check_horizontal_collisions(self, platforms):
+        """Проверяет горизонтальные коллизии маски с прямоугольниками"""
+        # Быстрая проверка прямоугольных коллизий
+        potential_hits = pygame.sprite.spritecollide(self, platforms, False)
+
+        for platform in potential_hits:
+            if self.check_mask_vs_rect_collision(platform):
+                # Определяем направление и корректируем позицию
+                if self.velocity.x > 0:  # Движение вправо
+                    self.rect.right = platform.rect.left
+                    self.velocity.x = 0
+                elif self.velocity.x < 0:  # Движение влево
+                    self.rect.left = platform.rect.right
+                    self.velocity.x = 0
+                return True
+            return False
+
+    def check_vertical_collisions(self, platforms):
+        """Проверяет вертикальные коллизии маски с прямоугольниками"""
+        # Быстрая проверка прямоугольных коллизий
+        potential_hits = pygame.sprite.spritecollide(self, platforms, False)
+        grounded = False
+
+        for platform in potential_hits:
+            if self.check_mask_vs_rect_collision(platform):
+                # Определяем направление и корректируем позицию
+                if self.velocity.y > 0:  # Падение вниз
+                    self.rect.bottom = platform.rect.top
+                    self.velocity.y = 0
+                    grounded = True
+                elif self.velocity.y < 0:  # Движение вверх
+                    self.rect.top = platform.rect.bottom
+                    self.velocity.y = 0
+                return True
+            return False
+
+        return grounded
+
+    def check_mask_vs_rect_collision(self, platform):
+        """
+        Проверяет коллизию маски текущего объекта с прямоугольником платформы
+
+        Args:
+            platform: объект с rect (платформа)
+            is_horizontal: True для горизонтальной проверки, False для вертикальной
+
+        Returns:
+            bool: True если есть коллизия маски с прямоугольником
+        """
+        # Получаем прямоугольник платформы в координатах мира
+        platform_rect = platform.rect
+
+        # Создаем маску для прямоугольника платформы
+        platform_mask = self._create_rect_mask(platform_rect.width, platform_rect.height)
+
+        # Вычисляем смещение между объектами
+        offset_x = platform_rect.x - self.rect.x
+        offset_y = platform_rect.y - self.rect.y
+
+        # Проверяем пересечение масок
+        collision_point = self.mask.overlap(platform_mask, (offset_x, offset_y))
+
+        return collision_point is not None
+
+    def _create_rect_mask(self, width, height):
+        """
+        Создает маску для прямоугольника (для проверки коллизий)
+
+        Args:
+            width, height: размеры прямоугольника
+
+        Returns:
+            Mask: маска полностью заполненного прямоугольника
+        """
+        # Создаем временную поверхность
+        temp_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        temp_surface.fill((255, 255, 255, 255))  # Полностью непрозрачная
+
+        # Создаем маску из поверхности
+        return pygame.mask.from_surface(temp_surface)
+
+    def check_mask_vs_rect_detailed(self, platform):
+        """
+        Детальная проверка коллизии с возвратом информации о столкновении
+
+        Returns:
+            dict: информация о коллизии или None
+        """
+        platform_rect = platform.rect
+        platform_mask = self._create_rect_mask(platform_rect.width, platform_rect.height)
+
+        offset_x = platform_rect.x - self.rect.x
+        offset_y = platform_rect.y - self.rect.y
+
+        collision_point = self.mask.overlap(platform_mask, (offset_x, offset_y))
+
+        if collision_point:
+            return {
+                'point': collision_point,
+                'offset': (offset_x, offset_y),
+                'platform_rect': platform_rect,
+            }
+        return None
+
+
 class Player(Physical):
     def __init__(self, x, y):
         Physical.__init__(self)
