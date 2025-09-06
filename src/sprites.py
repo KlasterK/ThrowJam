@@ -206,5 +206,41 @@ class Player(Physical):
         self.acceleration.x = 0
         self.velocity.x = 0
 
-class Spear(Physical):
-    ...
+
+class Spear(MaskPhysical):
+    def __init__(self, pos: Vector2, direction: Vector2):
+        super().__init__()
+
+        # Загрузка текстуры
+        self.original_image = get_image('spear.png')
+        self.image = self.original_image.copy()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect(center=pos)
+
+        # Расчет начальной скорости
+        if direction.length() > 0:
+            direction.normalize_ip()
+
+        # Начальная скорость
+        initial_speed = 500
+        self.velocity = direction * initial_speed
+
+        # Состояние копья
+        self._is_stuck = False  # Вонзилось в объект
+
+    def update(self, dt, platforms):
+        """Обновляет состояние копья"""
+        if self._is_stuck:
+            return
+
+        # Применяем физику (гравитация и движение)
+        if Physical.update(self, dt, platforms):
+            # there was a collision (now returns a bool)
+            self._is_stuck = True
+            return
+
+        # Обновляем угол вращения на основе скорости
+        if self.velocity.length() > 0:
+            self.image = pygame.transform.rotate(self.original_image, self.velocity.as_polar()[1])
+            self.mask = pygame.mask.from_surface(self.image)
+            self.rect = self.image.get_rect(center=self.rect.center)
