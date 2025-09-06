@@ -3,79 +3,115 @@ from pygame.math import Vector2
 
 from .util import get_image
 
+
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, tile_size=100):
+    def __init__(self, x, y, tile_w, tile_h):
         """
-        Создает платформу с повторяющейся серединой текстуры
-        
+        Создает платформу из составных текстур
+
         Args:
-            x, y: координаты левого верхнего угла
-            width, height: размеры платформы
-            texture_path: путь к текстуре (300x100 пикселей)
-            tile_size: размер тайла для повторения (по умолчанию 100)
+            x, y: координаты левого верхнего угла платформы
+            tile_w: количество тайлов в средней части по горизонтали
+            tile_h: количество тайлов в средней части по вертикали
         """
         super().__init__()
-        
-        self.width = width
-        self.height = height
-        self.tile_size = tile_size
-        
-        # Создаем поверхность для всей платформы
-        self.image = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        
-        self.load_texture()
+        self.x = x
+        self.y = y
+        self.tile_w = tile_w
+        self.tile_h = tile_h
+
+        self.load_textures()
+        self.build_image()
+
+        # Создаем прямоугольник для позиционирования и коллизий
+        self.rect = self.image.get_rect(topleft=(x, y))
+        # Создаем маску для точных коллизий
         self.mask = pygame.mask.from_surface(self.image)
 
-    def load_texture(self):
-        # Загружаем исходную текстуру
-        original_texture = get_image('platform/a.png')
-        
-        # Масштабируем до нужной высоты, сохраняя пропорции
-        original_height = original_texture.get_height()
-        scale_factor = self.height / original_height
-        scaled_width = int(original_texture.get_width() * scale_factor)
-        scaled_tile_size = int(self.tile_size * scale_factor)
-        
-        # Масштабируем всю текстуру
-        scaled_texture = pygame.transform.scale(original_texture, 
-                                                (scaled_width, self.height))
-        
-        # Разрезаем текстуру на части
-        left_part = scaled_texture.subsurface((0, 0, scaled_tile_size, self.height))
-        middle_part = scaled_texture.subsurface((scaled_tile_size, 0, scaled_tile_size, self.height))
-        right_part = scaled_texture.subsurface((scaled_tile_size * 2, 0, scaled_tile_size, self.height))
-        
-        # Отрисовываем левую часть
-        self.image.blit(left_part, (0, 0))
-        
-        # Отрисовываем правую часть
-        right_x = self.width - scaled_tile_size
-        self.image.blit(right_part, (right_x, 0))
-        
-        # Отрисовываем повторяющуюся середину
-        middle_width = self.width - 2 * scaled_tile_size
-        if middle_width > 0:
-            self.draw_middle_part(middle_part, scaled_tile_size, middle_width)
-            
+    def load_textures(self):
+        self._texs = {
+            key: get_image(f'platform/{key}.png')
+            for key in (
+                'topleft',
+                'topright',
+                'bottomleft',
+                'bottomright',
+                'top',
+                'left',
+                'bottom',
+                'right',
+                'center',
+            )
+        }
 
-    def draw_middle_part(self, middle_part, tile_width, available_width):
-        """Отрисовывает повторяющуюся среднюю часть"""
-        current_x = tile_width
-        
-        # Рисуем полные тайлы
-        full_tiles_count = available_width // tile_width
-        for _ in range(full_tiles_count):
-            self.image.blit(middle_part, (current_x, 0))
-            current_x += tile_width
-        
-        # Рисуем оставшуюся часть (если есть)
-        remaining_width = available_width % tile_width
-        if remaining_width > 0:
-            partial_tile = middle_part.subsurface((0, 0, remaining_width, self.height))
-            self.image.blit(partial_tile, (current_x, 0))
+    def build_image(self):
+        """Создает изображение платформы из составных частей"""
+        # Получаем размеры текстур
+        c_tl = self._texs['topleft'].get_rect()
+        c_tr = self._texs['topright'].get_rect()
+        c_bl = self._texs['bottomleft'].get_rect()
+        c_br = self._texs['bottomright'].get_rect()
+
+        s_top = self._texs['top'].get_rect()
+        s_bottom = self._texs['bottom'].get_rect()
+        s_left = self._texs['left'].get_rect()
+        s_right = self._texs['right'].get_rect()
+
+        mid_rect = self._texs['center'].get_rect()
+
+        # Вычисляем общий размер платформы
+        total_width = c_tl.width + self.tile_w * s_top.width + c_tr.width
+        total_height = c_tl.height + self.tile_h * s_left.height + c_bl.height
+
+        # Создаем поверхность для платформы
+        self.image = pygame.Surface((total_width, total_height), pygame.SRCALPHA)
+        self.image.fill((0, 0, 0, 0))  # Прозрачный фон
+
+        # Рисуем верхнюю строку
+        x, y = 0, 0
+        self.image.blit(self._texs['topleft'], (x, y))
+        x += c_tl.width
+
+        for i in range(self.tile_w):
+            self.image.blit(self._texs['top'], (x, y))
+            x += s_top.width
+
+        self.image.blit(self._texs['topright'], (x, y))
+
+        # Рисуем средние строки
+        for j in range(self.tile_h):
+            x, y = 0, c_tl.height + j * s_left.height
+            self.image.blit(self._texs['left'], (x, y))
+            x += s_left.width
+
+            for i in range(self.tile_w):
+                self.image.blit(self._texs['center'], (x, y))
+                x += mid_rect.width
+
+            self.image.blit(self._texs['right'], (x, y))
+
+        # Рисуем нижнюю строку
+        x, y = 0, total_height - c_bl.height
+        self.image.blit(self._texs['bottomleft'], (x, y))
+        x += c_bl.width
+
+        for i in range(self.tile_w):
+            self.image.blit(self._texs['bottom'], (x, y))
+            x += s_bottom.width
+
+        self.image.blit(self._texs['bottomright'], (x, y))
+
+    def update(self, dt):
+        """Метод update для совместимости (платформа статична)"""
+        pass
+
+    def draw(self, surface, camera=None):
+        """Отрисовывает платформу с учетом камеры (если provided)"""
+        if camera:
+            surface.blit(self.image, camera.apply(self))
+        else:
+            surface.blit(self.image, self.rect)
+
 
 class Physical(pygame.sprite.Sprite):
     def __init__(self, *groups):
