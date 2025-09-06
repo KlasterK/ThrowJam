@@ -1,6 +1,8 @@
 import pygame
 import abc
 
+from .sprites import Player
+
 
 class StopHandling(Exception):
     '''Exception to prevent the current event from handling by other event handlers.
@@ -15,8 +17,9 @@ class BaseEventHandler(abc.ABC):
 
 
 class GameAppEventHandler(BaseEventHandler):
-    def __init__(self, app: 'GameApp'):
+    def __init__(self, app: 'GameApp', camera: 'Camera'):
         self._app = app
+        self._camera = camera
 
     def process_event(self, e):
         if e.type == pygame.QUIT:
@@ -25,3 +28,51 @@ class GameAppEventHandler(BaseEventHandler):
         elif e.type == pygame.KEYDOWN:
             if e.key == pygame.K_ESCAPE:
                 self._app.stop()
+            elif e.key == pygame.K_SPACE:
+                self._app.is_paused = not self._app.is_paused
+            elif e.key == pygame.K_F5:
+                self._app.update()
+            elif e.key == pygame.K_F6:
+                self._app.reload()
+
+        elif e.type == pygame.VIDEORESIZE:
+            self._camera.width = e.w
+            self._camera.height = e.h
+
+class PlayerMotionEventHandler(BaseEventHandler):
+    def __init__(self, player: 'Player'):
+        self._player = player
+        self._actions = set()
+
+    def process_event(self, e: pygame.Event):
+        """Обрабатывает события клавиатуры"""
+        if e.type == pygame.KEYDOWN:
+            if e.key == pygame.K_a:
+                self._actions.add('left')
+                if 'right' in self._actions:
+                    self._player.stop_horizontal()
+                else:
+                    self._player.move_left()
+            elif e.key == pygame.K_d:
+                self._actions.add('right')
+                if 'left' in self._actions:
+                    self._player.stop_horizontal()
+                else:
+                    self._player.move_right()
+            elif e.key == pygame.K_w:
+                self._player.jump()
+                
+        elif e.type == pygame.KEYUP:
+            if e.key == pygame.K_a:
+                self._actions.discard('left')
+                if 'right' not in self._actions:
+                    self._player.stop_horizontal()
+                else:
+                    self._player.move_right()
+                    
+            elif e.key == pygame.K_d:
+                self._actions.discard('right')
+                if 'left' not in self._actions:
+                    self._player.stop_horizontal()
+                else:
+                    self._player.move_left()

@@ -1,5 +1,13 @@
 import pygame
-from .windowevents import GameAppEventHandler, StopHandling
+
+from .mainwindow import MainWindow
+
+from .camera import Camera
+
+from .util import get_image
+from .windowevents import GameAppEventHandler, PlayerMotionEventHandler, StopHandling
+from .sprites import Platform, Player
+from .ui import Subwindow
 
 class GameApp:
     def __init__(self):
@@ -8,20 +16,42 @@ class GameApp:
 
         pygame.display.set_mode(
             (400, 400),
-            # pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.HWACCEL,
-            # vsync=1,
+            pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.HWACCEL,
+            vsync=1,
         )
         pygame.display.set_caption('Vnezapni Gamejam Game')
 
         self._screen = pygame.display.get_surface()
         self._is_running = True
+        self._dt = 0
+        self.is_paused = False
+
+        self.reload()
+
+    def reload(self):
+        self._player = Player(100, 0)
+        self._platforms = pygame.sprite.Group(
+            Platform(100, 100, 300, 100),
+        )
+
+        self._camera = Camera(400, 400, self._player)
+
+        self._ui = MainWindow(self, self._screen)
+        self._ui.capture_surface = self._screen
         
         self._event_handlers = (
-            GameAppEventHandler(self),
+            self._ui,
+            GameAppEventHandler(self, self._camera),
+            PlayerMotionEventHandler(self._player),
         )
 
     def run(self):
+        clock = pygame.time.Clock()
+        was_game_over = False
+        
         while self._is_running:
+            self._dt = clock.tick() / 1000
+            
             for event in pygame.event.get():
                 for handler in self._event_handlers:
                     try:
@@ -29,9 +59,34 @@ class GameApp:
                     except StopHandling:
                         break
 
-            self._screen.fill('#003300')
+            if not self.is_paused:
+                self.update()
+            self._camera.update()
+
+            if self._player.rect.y > 1000 and not was_game_over:
+                self._ui.show_game_over()
+                was_game_over = True
+            
+            self._screen.fill("#C8FFFD")
+            # self._platforms.draw(self._screen)
+            # self._screen.blit(self._player.image, self._player.rect)
+
+            for sprite in (*self._platforms, self._player):
+                screen_pos = self._camera.apply(sprite)
+                self._screen.blit(sprite.image, screen_pos)
+
+            self._ui.draw(self._screen)
+
+            if self.is_paused:
+                for bar_rect in pygame.Rect(10, 10, 10, 30), pygame.Rect(30, 10, 10, 30):
+                    self._screen.fill('#000000', bar_rect.inflate(2, 2))
+                    self._screen.fill('#ffffff', bar_rect)
 
             pygame.display.flip()
 
     def stop(self):
         self._is_running = False
+
+    def update(self):
+        self._player.update(self._dt, self._platforms)
+        
