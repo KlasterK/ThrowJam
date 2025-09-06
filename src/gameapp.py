@@ -9,6 +9,7 @@ from .windowevents import GameAppEventHandler, PlayerMotionEventHandler, StopHan
 from .sprites import Platform, Player
 from .ui import Subwindow
 
+
 class GameApp:
     def __init__(self):
         if not pygame.get_init():
@@ -30,28 +31,30 @@ class GameApp:
 
     def reload(self):
         self._player = Player(100, 0)
+        self._spears = pygame.sprite.Group()
         self._platforms = pygame.sprite.Group(
-            Platform(100, 100, 300, 100),
+            Platform(100, 100, 10, 0),
+            Platform(60, 60, 0, 0),
         )
 
         self._camera = Camera(400, 400, self._player)
 
         self._ui = MainWindow(self, self._screen)
         self._ui.capture_surface = self._screen
-        
+
         self._event_handlers = (
             self._ui,
             GameAppEventHandler(self, self._camera),
-            PlayerMotionEventHandler(self._player),
+            PlayerMotionEventHandler(self._player, self._spears),
         )
 
     def run(self):
         clock = pygame.time.Clock()
         was_game_over = False
-        
+
         while self._is_running:
             self._dt = clock.tick() / 1000
-            
+
             for event in pygame.event.get():
                 for handler in self._event_handlers:
                     try:
@@ -66,16 +69,23 @@ class GameApp:
             if self._player.rect.y > 1000 and not was_game_over:
                 self._ui.show_game_over()
                 was_game_over = True
-            
+
             self._screen.fill("#C8FFFD")
             # self._platforms.draw(self._screen)
             # self._screen.blit(self._player.image, self._player.rect)
 
-            for sprite in (*self._platforms, self._player):
+            for sprite in (
+                self._player,
+                *self._spears,
+                *self._platforms,
+            ):
                 screen_pos = self._camera.apply(sprite)
                 self._screen.blit(sprite.image, screen_pos)
 
             self._ui.draw(self._screen)
+            pygame.draw.rect(
+                self._screen, '#ff0000', self._camera.apply(self._platforms.sprites()[0].rect), 1
+            )
 
             if self.is_paused:
                 for bar_rect in pygame.Rect(10, 10, 10, 30), pygame.Rect(30, 10, 10, 30):
@@ -89,4 +99,4 @@ class GameApp:
 
     def update(self):
         self._player.update(self._dt, self._platforms)
-        
+        self._spears.update(self._dt, self._platforms)

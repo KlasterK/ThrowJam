@@ -141,7 +141,9 @@ class Physical(pygame.sprite.Sprite):
                 self.rect.left = sprite.rect.right
                 self.velocity.x = 0
 
-    def check_vertical_collisions(self, platforms: pygame.sprite.Group) -> None:
+        return bool(hits)
+
+    def check_vertical_collisions(self, platforms: pygame.sprite.Group) -> bool:
         self.is_grounded = False
         hits = pygame.sprite.spritecollide(self, platforms, False)
 
@@ -267,7 +269,7 @@ class Player(Physical):
     def __init__(self, x, y):
         Physical.__init__(self)
         self.rect.update(x, y, 50, 50)
-        
+
         # Настройки игрока
         self.jump_force = -400  # Отрицательное значение = вверх
         self.move_speed = 4000
@@ -275,26 +277,26 @@ class Player(Physical):
         self._facing = 'right'
 
         self.image = get_image('player_idle.png')
-        
+
         # # Визуализация
         # self.image.fill(self.color)
         # pygame.draw.rect(self.image, (255, 255, 255), (10, 10, 10, 10))  # Глаза
 
     def move_left(self):
         """Движение влево"""
-        if self.is_grounded:
-            self.acceleration.x = -self.move_speed
-            if self._facing == 'right':
-                self.image = pygame.transform.flip(self.image, True, False)
-            self._facing = 'left'
+        # if self.is_grounded:
+        self.acceleration.x = -self.move_speed
+        if self._facing == 'right':
+            self.image = pygame.transform.flip(self.image, True, False)
+        self._facing = 'left'
 
     def move_right(self):
         """Движение вправо"""
-        if self.is_grounded:
-            self.acceleration.x = self.move_speed
-            if self._facing == 'left':
-                self.image = pygame.transform.flip(self.image, True, False)
-            self._facing = 'right'
+        # if self.is_grounded:
+        self.acceleration.x = self.move_speed
+        if self._facing == 'left':
+            self.image = pygame.transform.flip(self.image, True, False)
+        self._facing = 'right'
 
     def jump(self):
         if self.is_grounded:
