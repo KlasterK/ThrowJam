@@ -24,7 +24,7 @@ class Platform(pygame.sprite.Sprite):
         self.build_image()
 
         # Создаем прямоугольник для позиционирования и коллизий
-        self.rect = self.image.get_rect(topleft=(x, y))
+        self.rect = self.image.get_frect(x=x, y=y)
         # Создаем маску для точных коллизий
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -125,7 +125,7 @@ class Physical(pygame.sprite.Sprite):
         self.rect.move_ip(self.velocity * dt)
 
         is_there_cols = self.check_vertical_collisions(platforms)
-        is_there_cols = is_there_cols or self.check_horizontal_collisions(platforms)
+        is_there_cols = self.check_horizontal_collisions(platforms) or is_there_cols
 
         self.acceleration = Vector2(0, 0)
         return is_there_cols
@@ -277,7 +277,7 @@ class Player(Physical):
         self._facing = 'right'
 
         self.image = get_image('player_idle.png')
-        self.rect = self.image.get_rect(x=x, y=y)
+        self.rect = self.image.get_frect(x=x, y=y)
 
         # # Визуализация
         # self.image.fill(self.color)

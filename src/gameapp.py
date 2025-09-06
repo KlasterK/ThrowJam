@@ -64,6 +64,9 @@ class GameApp:
                     except StopHandling:
                         break
 
+            for handler in self._event_handlers:
+                handler.update()
+
             if not self.is_paused:
                 self.update()
             self._camera.update()

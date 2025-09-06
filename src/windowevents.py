@@ -18,6 +18,9 @@ class BaseEventHandler(abc.ABC):
     def process_event(self, e: pygame.Event):
         pass
 
+    def update(self):
+        pass
+
 
 class GameAppEventHandler(BaseEventHandler):
     def __init__(self, app: 'GameApp', camera: 'Camera'):
@@ -88,5 +91,6 @@ class PlayerMotionEventHandler(BaseEventHandler):
             elif e.key == pygame.K_w:
                 self._actions.discard('jump')
 
+    def update(self):
         if 'jump' in self._actions and self._player.is_grounded:
             self._player.jump()
