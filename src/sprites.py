@@ -101,54 +101,44 @@ class Platform(pygame.sprite.Sprite):
 
         self.image.blit(self._texs['bottomright'], (x, y))
 
-    def update(self, dt):
-        """Метод update для совместимости (платформа статична)"""
-        pass
-
-    def draw(self, surface, camera=None):
-        """Отрисовывает платформу с учетом камеры (если provided)"""
-        if camera:
-            surface.blit(self.image, camera.apply(self))
-        else:
-            surface.blit(self.image, self.rect)
-
 
 class Physical(pygame.sprite.Sprite):
     def __init__(self, *groups):
         pygame.sprite.Sprite.__init__(self, *groups)
         self.rect = pygame.FRect()
-        
+
         self.velocity = Vector2(0, 0)
         self.acceleration = Vector2(0, 0)
-        
-        self.gravity = Vector2(0, 980)  # 980 px/s**2 
+
+        self.gravity = Vector2(0, 980)  # 980 px/s**2
         self.max_speed = 300
-        
+
         self.is_grounded = False
 
-    def update(self, dt, platforms):
+    def update(self, dt, platforms) -> bool:
         self.velocity += self.acceleration * dt
         self.velocity += self.gravity * dt
-        
+
         if self.velocity.length() > self.max_speed:
             self.velocity.scale_to_length(self.max_speed)
 
         self.rect.move_ip(self.velocity * dt)
-        
-        self.check_vertical_collisions(platforms)
-        self.check_horizontal_collisions(platforms)
-        
-        self.acceleration = Vector2(0, 0)
 
-    def check_horizontal_collisions(self, platforms):
+        is_there_cols = self.check_vertical_collisions(platforms)
+        is_there_cols = is_there_cols or self.check_horizontal_collisions(platforms)
+
+        self.acceleration = Vector2(0, 0)
+        return is_there_cols
+
+    def check_horizontal_collisions(self, group) -> bool:
         """Проверяет коллизии по горизонтали"""
-        hits = pygame.sprite.spritecollide(self, platforms, False)
-        for platform in hits:
+        hits = pygame.sprite.spritecollide(self, group, False)
+        for sprite in hits:
             if self.velocity.x > 0:  # Движение вправо
-                self.rect.right = platform.rect.left
+                self.rect.right = sprite.rect.left
                 self.velocity.x = 0
             elif self.velocity.x < 0:  # Движение влево
-                self.rect.left = platform.rect.right
+                self.rect.left = sprite.rect.right
                 self.velocity.x = 0
 
     def check_vertical_collisions(self, platforms: pygame.sprite.Group) -> None:
