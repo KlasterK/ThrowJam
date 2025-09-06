@@ -268,7 +268,6 @@ class MaskPhysical(Physical):
 class Player(Physical):
     def __init__(self, x, y):
         Physical.__init__(self)
-        self.rect.update(x, y, 50, 50)
 
         # Настройки игрока
         self.jump_force = -400  # Отрицательное значение = вверх
@@ -277,6 +276,7 @@ class Player(Physical):
         self._facing = 'right'
 
         self.image = get_image('player_idle.png')
+        self.rect = self.image.get_rect(x=x, y=y)
 
         # # Визуализация
         # self.image.fill(self.color)
@@ -286,26 +286,24 @@ class Player(Physical):
         """Движение влево"""
         # if self.is_grounded:
         self.acceleration.x = -self.move_speed
-        if self._facing == 'right':
-            self.image = pygame.transform.flip(self.image, True, False)
+        self.image = pygame.transform.flip(get_image('player_running_toright.png'), True, False)
         self._facing = 'left'
 
     def move_right(self):
         """Движение вправо"""
         # if self.is_grounded:
         self.acceleration.x = self.move_speed
-        if self._facing == 'left':
-            self.image = pygame.transform.flip(self.image, True, False)
+        self.image = get_image('player_running_toright.png')
         self._facing = 'right'
 
     def jump(self):
         if self.is_grounded:
             self.velocity.y = self.jump_force
-            self.is_grounded = False
 
     def stop_horizontal(self):
         self.acceleration.x = 0
         self.velocity.x = 0
+        self.image = get_image('player_idle.png')
 
 
 class Spear(MaskPhysical):
