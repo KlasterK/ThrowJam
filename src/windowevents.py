@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
 import pygame
 import abc
 
+if TYPE_CHECKING:
+    from .gameapp import GameApp
+
 from .camera import Camera
 
-from .sprites import Player, Spear
+from .sprites import Enemy, Player
 
 
 class StopHandling(Exception):
@@ -47,10 +51,13 @@ class GameAppEventHandler(BaseEventHandler):
 
 
 class PlayerMotionEventHandler(BaseEventHandler):
-    def __init__(self, player: 'Player', spear_group: pygame.sprite.Group):
+    def __init__(
+        self, player: 'Player', spear_group: pygame.sprite.Group, enemies_group: pygame.sprite.Group
+    ):
         self._player = player
         self._actions = set()
         self._spears = spear_group
+        self._enemies = enemies_group
 
     def process_event(self, e: pygame.Event):
         """Обрабатывает события клавиатуры"""
@@ -61,16 +68,23 @@ class PlayerMotionEventHandler(BaseEventHandler):
                     self._player.stop_horizontal()
                 else:
                     self._player.move_left()
+
             elif e.key == pygame.K_d:
                 self._actions.add('right')
                 if 'left' in self._actions:
                     self._player.stop_horizontal()
                 else:
                     self._player.move_right()
+
             elif e.key == pygame.K_w:
                 self._actions.add('jump')
+
             elif e.key in (pygame.K_LCTRL, pygame.K_RCTRL):
                 self._player.throw_spear(self._spears)
+
+            elif e.key == pygame.K_e:
+                e = Enemy(self._player.rect.x + 100, self._player.rect.y - 30)
+                self._enemies.add(e)
 
         elif e.type == pygame.KEYUP:
             if e.key == pygame.K_a:

@@ -37,6 +37,7 @@ class GameApp:
             Platform(100, 100, 10, 0),
             Platform(61, 40, 0, 3),
         )
+        self._enemies = pygame.sprite.Group()
 
         self._camera = Camera(400, 400, self._player)
         self._was_game_over = False
@@ -47,7 +48,7 @@ class GameApp:
         self._event_handlers = (
             self._ui,
             GameAppEventHandler(self, self._camera),
-            PlayerMotionEventHandler(self._player, self._spears),
+            PlayerMotionEventHandler(self._player, self._spears, self._enemies),
         )
 
     def run(self):
@@ -83,6 +84,7 @@ class GameApp:
 
             for sprite in (
                 self._player,
+                *self._enemies,
                 *self._spears,
                 *self._platforms,
             ):
@@ -106,3 +108,4 @@ class GameApp:
     def update(self):
         self._player.update(self._dt, self._platforms)
         self._spears.update(self._dt, self._platforms)
+        self._enemies.update(self._dt, self._platforms)

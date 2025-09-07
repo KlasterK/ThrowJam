@@ -323,7 +323,7 @@ class Spear(MaskPhysical):
         self.original_image = get_image('spear.png')
         self.image = self.original_image.copy()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect(center=pos)
+        self.rect = self.image.get_frect(center=pos)
 
         # Расчет начальной скорости
         if direction.length() > 0:
@@ -352,4 +352,10 @@ class Spear(MaskPhysical):
         if self.velocity.length() > 0:
             self.image = pygame.transform.rotate(self.original_image, self.velocity.as_polar()[1])
             self.mask = pygame.mask.from_surface(self.image)
-            self.rect = self.image.get_rect(center=self.rect.center)
+            self.rect = self.image.get_frect(center=self.rect.center)
+
+
+class Enemy(Player):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.move_left()
