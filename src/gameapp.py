@@ -69,6 +69,9 @@ class GameApp:
             if not self.is_paused:
                 self.update()
             self._camera.update()
+            if len(self._spears) > 5:
+                sorted_spears = sorted(self._spears, key=lambda s: s.creation_time)
+                sorted_spears[0].kill()
 
             if self._player.rect.y > 1000 and not self._was_game_over:
                 self._ui.show_game_over()

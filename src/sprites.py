@@ -1,3 +1,4 @@
+import time
 import pygame
 from pygame.math import Vector2
 
@@ -334,6 +335,7 @@ class Spear(MaskPhysical):
 
         # Состояние копья
         self._is_stuck = False  # Вонзилось в объект
+        self.creation_time = time.time()
 
     def update(self, dt, platforms):
         """Обновляет состояние копья"""
