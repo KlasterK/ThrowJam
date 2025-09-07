@@ -309,6 +309,10 @@ class Player(Physical):
         self.image = get_image('player_idle.png')
         self.rect = self.image.get_frect(topleft=self.rect.topleft)
 
+    def throw_spear(self, spears_group):
+        spear = Spear(self.rect.topleft, self.velocity)
+        spears_group.add(spear)
+
 
 class Spear(MaskPhysical):
     def __init__(self, pos: Vector2, direction: Vector2):

@@ -70,8 +70,7 @@ class PlayerMotionEventHandler(BaseEventHandler):
             elif e.key == pygame.K_w:
                 self._actions.add('jump')
             elif e.key in (pygame.K_LCTRL, pygame.K_RCTRL):
-                spear = Spear(self._player.rect.topleft, self._player.velocity)
-                self._spears.add(spear)
+                self._player.throw_spear(self._spears)
 
         elif e.type == pygame.KEYUP:
             if e.key == pygame.K_a:
