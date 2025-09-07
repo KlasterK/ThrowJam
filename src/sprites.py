@@ -116,7 +116,7 @@ class Physical(pygame.sprite.Sprite):
 
         self.is_grounded = False
 
-    def update(self, dt, platforms) -> bool:
+    def update(self, dt: float, group: pygame.sprite.Group, cb=lambda sprite: True) -> bool:
         self.velocity += self.acceleration * dt
         self.velocity += self.gravity * dt
 
@@ -125,17 +125,21 @@ class Physical(pygame.sprite.Sprite):
 
         self.rect.move_ip(self.velocity * dt)
 
-        is_there_cols = self.check_vertical_collisions(platforms)
-        is_there_cols = self.check_horizontal_collisions(platforms) or is_there_cols
+        is_there_cols = self.check_vertical_collisions(group, cb)
+        is_there_cols = self.check_horizontal_collisions(group, cb) or is_there_cols
 
         self.acceleration = Vector2(0, 0)
         return is_there_cols
 
-    def check_horizontal_collisions(self, group) -> bool:
+    def check_horizontal_collisions(self, group, cb) -> bool:
         """Проверяет коллизии по горизонтали"""
 
         hits = pygame.sprite.spritecollide(self, group, False)
+
         for sprite in hits:
+            if sprite is self or not cb(sprite):
+                continue
+
             if self.velocity.x > 0:  # Движение вправо
                 self.rect.right = sprite.rect.left
                 self.velocity.x = 0
@@ -145,60 +149,71 @@ class Physical(pygame.sprite.Sprite):
 
         return bool(hits)
 
-    def check_vertical_collisions(self, platforms: pygame.sprite.Group) -> bool:
+    def check_vertical_collisions(self, group: pygame.sprite.Group, cb) -> bool:
         self.is_grounded = False
-        hits = pygame.sprite.spritecollide(self, platforms, False)
+        hits = pygame.sprite.spritecollide(self, group, False)
 
-        for platform in hits:
+        for sprite in hits:
+            if sprite is self or not cb(sprite):
+                continue
+
             if self.velocity.y > 0:  # Падение вниз
-                self.rect.bottom = platform.rect.top
+                self.rect.bottom = sprite.rect.top
                 self.velocity.y = 0
                 self.is_grounded = True
             elif self.velocity.y < 0:  # Прыжок вверх
-                self.rect.top = platform.rect.bottom
+                self.rect.top = sprite.rect.bottom
                 self.velocity.y = 0
 
         return bool(hits)
 
 
 class MaskPhysical(Physical):
-    def check_horizontal_collisions(self, platforms):
+    def check_horizontal_collisions(self, group, cb):
         """Проверяет горизонтальные коллизии маски с прямоугольниками"""
         # Быстрая проверка прямоугольных коллизий
-        potential_hits = pygame.sprite.spritecollide(self, platforms, False)
+        potential_hits = pygame.sprite.spritecollide(self, group, False)
+        ret = False
 
-        for platform in potential_hits:
-            if self.check_mask_vs_rect_collision(platform):
+        for sprite in potential_hits:
+            if sprite is self or not cb(sprite):
+                continue
+
+            if self.check_mask_vs_rect_collision(sprite):
                 # Определяем направление и корректируем позицию
                 if self.velocity.x > 0:  # Движение вправо
-                    self.rect.right = platform.rect.left
+                    self.rect.right = sprite.rect.left
                     self.velocity.x = 0
                 elif self.velocity.x < 0:  # Движение влево
-                    self.rect.left = platform.rect.right
+                    self.rect.left = sprite.rect.right
                     self.velocity.x = 0
-                return True
-            return False
+                ret = True
 
-    def check_vertical_collisions(self, platforms):
+        return ret
+
+    def check_vertical_collisions(self, group, cb):
         """Проверяет вертикальные коллизии маски с прямоугольниками"""
         # Быстрая проверка прямоугольных коллизий
-        potential_hits = pygame.sprite.spritecollide(self, platforms, False)
+        potential_hits = pygame.sprite.spritecollide(self, group, False)
         grounded = False
+        ret = False
 
-        for platform in potential_hits:
-            if self.check_mask_vs_rect_collision(platform):
+        for sprite in potential_hits:
+            if sprite is self or not cb(sprite):
+                continue
+
+            if self.check_mask_vs_rect_collision(sprite):
                 # Определяем направление и корректируем позицию
                 if self.velocity.y > 0:  # Падение вниз
-                    self.rect.bottom = platform.rect.top
+                    self.rect.bottom = sprite.rect.top
                     self.velocity.y = 0
-                    grounded = True
+                    self.is_grounded = True
                 elif self.velocity.y < 0:  # Движение вверх
-                    self.rect.top = platform.rect.bottom
+                    self.rect.top = sprite.rect.bottom
                     self.velocity.y = 0
-                return True
-            return False
+                ret = True
 
-        return grounded
+        return ret
 
     def check_mask_vs_rect_collision(self, platform):
         """
@@ -279,6 +294,8 @@ class Player(Physical):
 
         self.image = get_image('player_idle.png')
         self.rect = self.image.get_frect(x=x, y=y)
+        self.health = 1
+        self._owned_spears = []
 
         # # Визуализация
         # self.image.fill(self.color)
@@ -311,19 +328,28 @@ class Player(Physical):
         self.rect = self.image.get_frect(topleft=self.rect.topleft)
 
     def throw_spear(self, spears_group):
-        spear = Spear(self.rect.topleft, self.velocity)
+        spear = Spear((self.rect.x, self.rect.y - 50), self.velocity, self)
         spears_group.add(spear)
+        self._owned_spears.append(spear)
+
+    def _on_hit(self, sprite):
+        return sprite not in self._owned_spears
+
+    def update(self, dt, group):
+        Physical.update(self, dt, group, self._on_hit)
+        if self.health < 0:
+            self.kill()
 
 
 class Spear(MaskPhysical):
-    def __init__(self, pos: Vector2, direction: Vector2):
+    def __init__(self, pos: Vector2, direction: Vector2, owner: Player):
         super().__init__()
 
         # Загрузка текстуры
         self.original_image = get_image('spear.png')
         self.image = self.original_image.copy()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_frect(center=pos)
+        self.rect = self.image.get_frect(topleft=pos)
 
         # Расчет начальной скорости
         if direction.length() > 0:
@@ -336,20 +362,32 @@ class Spear(MaskPhysical):
         # Состояние копья
         self._is_stuck = False  # Вонзилось в объект
         self.creation_time = time.time()
+        self._owner = owner
 
-    def update(self, dt, platforms):
+    def _on_hit(self, sprite):
+        if sprite is self._owner or isinstance(sprite, Spear):
+            return False
+
+        if isinstance(sprite, Player):
+            sprite.health -= 0.1
+
+        return not self._is_stuck
+
+    def update(self, dt, group, cb=None):
         """Обновляет состояние копья"""
-        if self._is_stuck:
-            return
+
+        old_pos = self.rect.topleft
 
         # Применяем физику (гравитация и движение)
-        if Physical.update(self, dt, platforms):
-            # there was a collision (now returns a bool)
+        if Physical.update(self, dt, group, self._on_hit):
             self._is_stuck = True
             return
 
+        if self._is_stuck:
+            self.rect.topleft = old_pos
+
         # Обновляем угол вращения на основе скорости
-        if self.velocity.length() > 0:
+        if not self._is_stuck and self.velocity.length() > 0:
             self.image = pygame.transform.rotate(self.original_image, self.velocity.as_polar()[1])
             self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_frect(center=self.rect.center)

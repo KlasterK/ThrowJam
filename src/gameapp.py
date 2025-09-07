@@ -106,6 +106,5 @@ class GameApp:
         self._is_running = False
 
     def update(self):
-        self._player.update(self._dt, self._platforms)
-        self._spears.update(self._dt, self._platforms)
-        self._enemies.update(self._dt, self._platforms)
+        group = pygame.sprite.Group(self._player, self._enemies, self._platforms, self._spears)
+        group.update(self._dt, group)
