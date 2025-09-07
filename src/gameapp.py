@@ -39,6 +39,7 @@ class GameApp:
         )
 
         self._camera = Camera(400, 400, self._player)
+        self._was_game_over = False
 
         self._ui = MainWindow(self, self._screen)
         self._ui.capture_surface = self._screen
@@ -51,8 +52,6 @@ class GameApp:
 
     def run(self):
         clock = pygame.time.Clock()
-        was_game_over = False
-        font = pygame.font.SysFont('Sans', 20)
 
         while self._is_running:
             self._dt = clock.tick() / 1000
@@ -71,9 +70,9 @@ class GameApp:
                 self.update()
             self._camera.update()
 
-            if self._player.rect.y > 1000 and not was_game_over:
+            if self._player.rect.y > 1000 and not self._was_game_over:
                 self._ui.show_game_over()
-                was_game_over = True
+                self._was_game_over = True
 
             self._screen.fill("#C8FFFD")
             # self._platforms.draw(self._screen)
